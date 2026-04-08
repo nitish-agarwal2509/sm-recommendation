@@ -22,7 +22,7 @@ sm-recommendation/
 ├── processor/               ← Flink job + pipeline logic (all 6 stages)
 ├── serving-api/             ← Spring Boot API (GET /recommendation)
 └── docs/
-    ├── PRD.md               ← full product requirements + algorithms
+    ├── LLD.md               ← full product requirements + algorithms
     └── phase/               ← implementation plan (one file per phase)
 ```
 
@@ -48,7 +48,7 @@ mvn spring-boot:run -pl serving-api
 
 **IMPORTANT — use `exec:exec`, not `exec:java` for Flink.** `exec:java` shares Maven's classloader and causes `ClassNotFoundException` for Flink's internal serialization. `exec:exec` spawns a fresh JVM.
 
-**JDK compatibility:** JDK 17+ required. JDK 25 needs `--add-opens` flags for Flink/Kryo (already configured in pom.xml).
+**JDK compatibility:** JDK 17 required (company standard). Install: `brew install --cask temurin@17`. Run with: `JAVA_HOME=$(/usr/libexec/java_home -v 17) mvn ...`
 
 **Maven location:** `/Users/nitish.agarwal5/tools/maven/bin/mvn`
 
@@ -67,7 +67,7 @@ mvn spring-boot:run -pl serving-api
 | 1 | Common module (enums, models, YAML config) | Complete |
 | 2 | Pipeline logic in plain Java (no Flink, fully unit-tested) | Complete |
 | 3 | Flink job (wraps Phase 2 logic, CSV → JSON) | Complete |
-| 4 | Spring Boot serving API (JSON read, surface affinity, fatigue write) | Not started |
+| 4 | Spring Boot serving API (JSON read, surface affinity, fatigue write) | Complete |
 | 5 | End-to-end integration tests | Not started |
 
 ## Pipeline (6 Stages, per user)

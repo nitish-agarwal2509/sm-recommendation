@@ -1,0 +1,28 @@
+server:
+  port: 8080
+
+recommendation:
+  store:
+    local-json-path: processor/output/recommendations.json
+  scoring-config-path: common/src/main/resources/scoring_rules.yaml
+  creative-variants:
+    UPI_ACTIVATION: "upi_v1"
+    PERSONAL_LOAN: "loan_v1"
+    UNSECURED_CARD: "card_unsecured_v1"
+    SECURED_CARD: "card_secured_v1"
+    CC_BILL_PAYMENT: "cc_bill_v1"
+    RENT_PAYMENT: "rent_v1"
+    BILL_PAYMENTS: "bill_v1"
+    RECHARGES: "recharge_v1"
+    REFERRALS: "referral_v1"
+    FIXED_DEPOSIT: "fd_v1"
+    FLIGHTS: "flights_v1"
+
+spring:
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+  task:
+    execution:
+      pool:
+        core-size: 2
+        max-size: 4

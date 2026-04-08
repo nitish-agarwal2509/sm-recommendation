@@ -6,6 +6,7 @@ import supermoney.recommendation.common.model.FatigueData;
 import supermoney.recommendation.common.model.Product;
 import supermoney.recommendation.common.model.ScoredCandidate;
 import supermoney.recommendation.common.model.UserFeatures;
+import supermoney.recommendation.common.pipeline.FatigueEvaluator;
 import supermoney.recommendation.processor.pipeline.PropensityScorer.PropensityResult;
 
 import java.util.List;

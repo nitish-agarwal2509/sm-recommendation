@@ -1,4 +1,4 @@
-package supermoney.recommendation.processor.pipeline;
+package supermoney.recommendation.common.pipeline;
 
 import supermoney.recommendation.common.config.ScoringConfig;
 import supermoney.recommendation.common.model.FatigueData;
@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Stage 7: Fatigue Evaluator.
  * Computes frequency-capped fatigue penalty per product based on impression history.
  *
  * Penalty table:
@@ -22,7 +21,7 @@ import java.util.Map;
  *   converted                 → 999 (permanent exclusion)
  *
  * Recency surcharge:
- *   shown_at < 24h ago        → +20 additional (shown today, back off)
+ *   shown_at within last 24h  → +20 additional (shown today, back off)
  *
  * max_cap comes from scoring_rules.yaml → fatigue.max_impressions per product.
  */
@@ -38,44 +37,38 @@ public class FatigueEvaluator {
      * Evaluates fatigue penalty for each eligible product.
      *
      * @param fatigueData      per-product impression history (may be empty/null for new users)
-     * @param eligibleProducts products that passed earlier pipeline stages
+     * @param eligibleProducts products to evaluate
      * @return map of Product → fatigue penalty (0.0 if no fatigue data)
      */
     public Map<Product, Double> evaluate(Map<Product, FatigueData> fatigueData,
                                           List<Product> eligibleProducts) {
         Map<Product, Double> penalties = new HashMap<>();
-
         for (Product product : eligibleProducts) {
             FatigueData data = fatigueData != null ? fatigueData.get(product) : null;
             penalties.put(product, computePenalty(product, data));
         }
-
         return penalties;
     }
 
     private double computePenalty(Product product, FatigueData data) {
         if (data == null) return 0.0;
 
-        // Permanent exclusion: user already converted (has the product)
         if (data.isConverted()) return 999.0;
 
-        int shownCount  = data.getShownCount();
-        int maxCap      = getMaxImpressions(product);
+        int shownCount = data.getShownCount();
+        int maxCap     = getMaxImpressions(product);
 
         double basePenalty;
-        if      (shownCount == 0)          basePenalty = 0.0;
-        else if (shownCount == 1)          basePenalty = 10.0;
-        else if (shownCount == 2)          basePenalty = 25.0;
-        else if (shownCount >= maxCap)     basePenalty = 70.0;
+        if      (shownCount == 0)      basePenalty = 0.0;
+        else if (shownCount == 1)      basePenalty = 10.0;
+        else if (shownCount == 2)      basePenalty = 25.0;
+        else if (shownCount >= maxCap) basePenalty = 70.0;
         else {
-            // Linear interpolation between 25 and 70 for counts between 2 and maxCap
             double ratio = (double)(shownCount - 2) / Math.max(maxCap - 2, 1);
             basePenalty = 25.0 + ratio * 45.0;
         }
 
-        // Recency surcharge: shown in the last 24h → add 20
         double recencySurcharge = wasShownRecently(data) ? 20.0 : 0.0;
-
         return basePenalty + recencySurcharge;
     }
 
@@ -92,7 +85,7 @@ public class FatigueEvaluator {
 
     private int getMaxImpressions(Product product) {
         var pc = config.getProduct(product.name());
-        if (pc == null || pc.getFatigue() == null) return 3; // safe default
+        if (pc == null || pc.getFatigue() == null) return 3;
         return Math.max(pc.getFatigue().getMaxImpressions(), 1);
     }
 }

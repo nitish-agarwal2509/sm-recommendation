@@ -3,6 +3,7 @@ package supermoney.recommendation.processor.pipeline;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import supermoney.recommendation.common.config.ConfigLoader;
+import supermoney.recommendation.common.pipeline.FatigueEvaluator;
 import supermoney.recommendation.common.config.ScoringConfig;
 import supermoney.recommendation.common.model.FatigueData;
 import supermoney.recommendation.common.model.Product;
