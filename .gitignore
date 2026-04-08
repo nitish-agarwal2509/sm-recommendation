@@ -1,0 +1,29 @@
+# Maven build output
+target/
+*.class
+
+# IDE files
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+*.code-workspace
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Flink job output (generated at runtime)
+processor/output/
+
+# Spring Boot packaged jar
+*.jar
+
+# Log files
+*.log
+logs/
+
+# Local config overrides (if any)
+*.local.yaml
+*.local.properties

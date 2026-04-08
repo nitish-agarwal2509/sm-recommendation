@@ -1,0 +1,471 @@
+# SM Recommendation Engine — Scoring Rules
+# All thresholds, weights, and config values live here.
+# No hardcoded values in Java code.
+
+products:
+
+  UPI_ACTIVATION:
+    business_priority: 1.0
+    signals:
+      - name: account_linkability
+        column: acc0AccNumber
+        type: binary        # non-null = 1.0, null = 0.0
+        weight: 40
+      - name: digital_savviness
+        column: digitalSavviness
+        type: numeric
+        min: 0
+        max: 10
+        weight: 30
+      - name: net_banking_enabled
+        column: netBankingFlag
+        type: binary
+        weight: 20
+      - name: finance_app_recency
+        column: recencyAppsGenreFinance
+        type: inverted      # lower recency (used recently) = higher score
+        min: 0
+        max: 180
+        weight: 10
+    eligibility:
+      # Eligibility rules are enforced in Java code (EligibilityFilter).
+      # Fields here are informational / used for config-driven checks where applicable.
+    fatigue:
+      max_impressions: 5
+    health_adjustments:
+      HEALTHY: 0
+      NEUTRAL: 0
+      STRESSED: 0
+
+  PERSONAL_LOAN:
+    business_priority: 0.95
+    signals:
+      - name: income_level
+        column: calculatedIncomeAmountV4
+        type: numeric
+        min: 20000
+        max: 150000
+        weight: 25
+      - name: credit_seeking_intent
+        column: cntLoanApplicationsC30
+        type: numeric
+        min: 0
+        max: 5
+        weight: 25
+      - name: repayment_cleanliness
+        column: binary_clean_credit   # resolved in PropensityScorer as combined binary expression
+        type: binary
+        weight: 20
+      - name: debt_headroom
+        column: dtiRatio              # derived field: 1 - dtiRatio used as signal
+        type: inverted                # lower DTI = more headroom = higher score
+        min: 0
+        max: 1
+        weight: 20
+      - name: account_vintage
+        column: acc0Vintage
+        type: numeric
+        min: 0
+        max: 730
+        weight: 10
+    eligibility:
+      min_income: 20000
+      max_dti: 0.50
+      max_active_loans: 3
+      max_delinquency_loan: 0
+    fatigue:
+      max_impressions: 3
+    health_adjustments:
+      HEALTHY: 0
+      NEUTRAL: -10
+      STRESSED: BLOCKED
+
+  UNSECURED_CARD:
+    business_priority: 0.90
+    signals:
+      - name: income
+        column: calculatedIncomeAmountV4
+        type: numeric
+        min: 25000
+        max: 200000
+        weight: 30
+      - name: clean_credit_history
+        column: binary_clean_cc_credit   # combined binary: max_dpd_acc1=0 AND cnt_delinquncy_cc_c90=0
+        type: binary
+        weight: 25
+      - name: rupay_upgrade_opportunity
+        column: rupay_cc_profile
+        type: binary                     # true -> 1.0, false -> 0.5 (partial signal)
+        weight: 20
+      - name: cc_application_intent
+        column: cntCcApplicationsC30
+        type: numeric
+        min: 0
+        max: 3
+        weight: 15
+      - name: upi_spend_willingness
+        column: amtTotalDebitsUpi3m
+        type: numeric
+        min: 0
+        max: 300000
+        weight: 10
+    eligibility:
+      min_income: 25000
+      max_delinquency_cc: 0
+      max_delinquency_loan: 0
+      max_dpd_acc1: 30
+    fatigue:
+      max_impressions: 3
+    health_adjustments:
+      HEALTHY: 0
+      NEUTRAL: -10
+      STRESSED: BLOCKED
+
+  SECURED_CARD:
+    business_priority: 0.85
+    signals:
+      - name: fd_collateral_quality
+        column: amtFdAccountsC180
+        type: numeric
+        min: 0
+        max: 500000
+        weight: 30
+      - name: income
+        column: calculatedIncomeAmountV4
+        type: numeric
+        min: 15000
+        max: 100000
+        weight: 25
+      - name: clean_history
+        column: binary_clean_secured   # bounce_flag=0 AND cnt_delinquncy_loan_c90=0
+        type: binary
+        weight: 25
+      - name: digital_savviness
+        column: digitalSavviness
+        type: numeric
+        min: 0
+        max: 10
+        weight: 20
+    eligibility:
+      min_income: 15000
+    fatigue:
+      max_impressions: 3
+    health_adjustments:
+      HEALTHY: 0
+      NEUTRAL: -5
+      STRESSED: BLOCKED
+
+  CC_BILL_PAYMENT:
+    business_priority: 0.75
+    signals:
+      - name: bill_urgency_days
+        column: ccBillLatestDate       # resolved as days_since(ccBillLatestDate) in scorer
+        type: numeric                  # higher days_since (closer to due) = more urgent
+        min: 20
+        max: 30
+        weight: 40
+      - name: bill_amount
+        column: ccBillM0
+        type: numeric
+        min: 0
+        max: 100000
+        weight: 35
+      - name: upi_active
+        column: upiUserFlag
+        type: binary
+        weight: 15
+      - name: cc_utilisation
+        column: ccUtilisation
+        type: numeric
+        min: 0
+        max: 1
+        weight: 10
+    eligibility:
+      # Requires: creditCardUserFlag=1 AND ccBillM0>0
+      # Enforced in EligibilityFilter
+    fatigue:
+      max_impressions: 4
+    health_adjustments:
+      HEALTHY: 0
+      NEUTRAL: -5
+      STRESSED: BLOCKED
+
+  RENT_PAYMENT:
+    business_priority: 0.65
+    signals:
+      - name: recurring_debit_size
+        column: acc0AmtDebitsP30
+        type: numeric
+        min: 5000
+        max: 50000
+        weight: 40
+      - name: income_level
+        column: calculatedIncomeAmountV4
+        type: numeric
+        min: 15000
+        max: 100000
+        weight: 30
+      - name: upi_active
+        column: upiUserFlag
+        type: binary
+        weight: 20
+      - name: digital_savviness
+        column: digitalSavviness
+        type: numeric
+        min: 0
+        max: 10
+        weight: 10
+    eligibility:
+      min_income: 15000
+      # Also requires: upiUserFlag=1 AND largeRecurringDebit=true
+      # Enforced in EligibilityFilter
+    fatigue:
+      max_impressions: 4
+    health_adjustments:
+      HEALTHY: 0
+      NEUTRAL: 0
+      STRESSED: 0
+
+  BILL_PAYMENTS:
+    business_priority: 0.60
+    signals:
+      - name: bill_urgency
+        column: billUrgency           # derived field
+        type: numeric
+        min: 0
+        max: 60
+        weight: 40
+      - name: active_bill_types_count
+        column: activeBillTypesCount   # resolved in scorer: sum of (broadband+dth+electricity+postpaid+lpg flags)
+        type: numeric
+        min: 1
+        max: 5
+        weight: 30
+      - name: upi_active
+        column: upiUserFlag
+        type: binary
+        weight: 20
+      - name: avg_postpaid_bill
+        column: avgPostpaidBill3m
+        type: numeric
+        min: 0
+        max: 5000
+        weight: 10
+    eligibility:
+      # Requires: any of (broadband/dth/electricity/postpaid/lpg flag = 1) AND upiUserFlag=1
+      # Enforced in EligibilityFilter
+    fatigue:
+      max_impressions: 5
+    health_adjustments:
+      HEALTHY: 0
+      NEUTRAL: 0
+      STRESSED: +10
+
+  RECHARGES:
+    business_priority: 0.55
+    signals:
+      - name: recharge_frequency
+        column: rechargeFrequency3m   # resolved in scorer: sum of cnt_paytm_wallet_recharge m1+m2+m3
+        type: numeric
+        min: 0
+        max: 9
+        weight: 40
+      - name: avg_recharge_amount
+        column: avgRechargeAmount3m   # resolved in scorer: (sum_amt_topup m1+m2+m3) / 3
+        type: numeric
+        min: 0
+        max: 500
+        weight: 30
+      - name: upi_active
+        column: upiUserFlag
+        type: binary
+        weight: 30
+    eligibility:
+      # Requires: prepaidFlag=1 AND upiUserFlag=1
+      # Enforced in EligibilityFilter
+    fatigue:
+      max_impressions: 6
+    health_adjustments:
+      HEALTHY: 0
+      NEUTRAL: 0
+      STRESSED: 0
+
+  REFERRALS:
+    business_priority: 0.50
+    signals:
+      - name: digital_savviness
+        column: digitalSavviness
+        type: numeric
+        min: 5
+        max: 10
+        weight: 35
+      - name: upi_activity
+        column: cntTotalTxnUpi3m
+        type: numeric
+        min: 0
+        max: 100
+        weight: 30
+      - name: multi_platform_usage
+        column: multiPlatformUsage    # resolved in scorer: count of (phonepe+paytm+mobikwik flags)
+        type: numeric
+        min: 0
+        max: 3
+        weight: 20
+      - name: finance_app_vintage
+        column: vintageAppsGenreFinance
+        type: numeric
+        min: 0
+        max: 365
+        weight: 15
+    eligibility:
+      min_digital_savviness: 5
+      # Also requires: upiUserFlag=1
+      # Enforced in EligibilityFilter
+    fatigue:
+      max_impressions: 4
+    health_adjustments:
+      HEALTHY: 0
+      NEUTRAL: 0
+      STRESSED: 0
+
+  FIXED_DEPOSIT:
+    business_priority: 0.40
+    signals:
+      - name: average_balance
+        column: totalAvgBal30
+        type: numeric
+        min: 10000
+        max: 500000
+        weight: 35
+      - name: monthly_surplus
+        column: surplusCash           # derived field
+        type: numeric
+        min: 0
+        max: 100000
+        weight: 25
+      - name: income_stability
+        column: calculatedIncomeConfidenceV4   # "HIGH" -> 1.0, else 0.5
+        type: binary
+        weight: 15
+      - name: salary_consistency
+        column: binary_salary_3m      # salary_m1_v4 > 0 AND salary_m2_v4 > 0 AND salary_m3_v4 > 0
+        type: binary
+        weight: 15
+      - name: investment_propensity
+        column: fpsInvestmentV1Probability
+        type: numeric
+        min: 0
+        max: 1
+        weight: 10
+    eligibility:
+      min_avg_balance: 10000
+      # Also requires: fdFlag=0 AND cntFdAccounts=0 (no existing FD)
+      # Enforced in EligibilityFilter
+    fatigue:
+      max_impressions: 4
+    health_adjustments:
+      HEALTHY: 0
+      NEUTRAL: +5
+      STRESSED: +15
+
+  FLIGHTS:
+    business_priority: 0.30
+    signals:
+      - name: income
+        column: calculatedIncomeAmountV4
+        type: numeric
+        min: 50000
+        max: 300000
+        weight: 40
+      - name: avg_balance
+        column: totalAvgBal30
+        type: numeric
+        min: 50000
+        max: 500000
+        weight: 30
+      - name: digital_savviness
+        column: digitalSavviness
+        type: numeric
+        min: 6
+        max: 10
+        weight: 30
+    eligibility:
+      min_income: 50000
+      min_digital_savviness: 6
+    fatigue:
+      max_impressions: 5
+    health_adjustments:
+      HEALTHY: 0
+      NEUTRAL: 0
+      STRESSED: 0
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Surface Affinity Multipliers
+# Applied at API serve time (NOT stored in batch output).
+# surface_affinity[surface][product] = multiplier (0.0 – 1.0)
+# ─────────────────────────────────────────────────────────────────────────────
+surface_affinity:
+  HOME_BANNER:
+    UPI_ACTIVATION: 1.0
+    PERSONAL_LOAN: 0.8
+    UNSECURED_CARD: 0.9
+    SECURED_CARD: 0.8
+    CC_BILL_PAYMENT: 0.9
+    RENT_PAYMENT: 0.9
+    BILL_PAYMENTS: 0.8
+    RECHARGES: 0.7
+    REFERRALS: 0.6
+    FIXED_DEPOSIT: 0.8
+    FLIGHTS: 0.5
+
+  HOME_BOTTOMSHEET:
+    UPI_ACTIVATION: 1.0
+    PERSONAL_LOAN: 1.0
+    UNSECURED_CARD: 1.0
+    SECURED_CARD: 1.0
+    CC_BILL_PAYMENT: 1.0
+    RENT_PAYMENT: 1.0
+    BILL_PAYMENTS: 0.9
+    RECHARGES: 0.8
+    REFERRALS: 0.8
+    FIXED_DEPOSIT: 0.9
+    FLIGHTS: 0.7
+
+  POST_UPI:
+    UPI_ACTIVATION: 0.5
+    PERSONAL_LOAN: 0.4
+    UNSECURED_CARD: 0.9
+    SECURED_CARD: 0.8
+    CC_BILL_PAYMENT: 0.5
+    RENT_PAYMENT: 0.5
+    BILL_PAYMENTS: 0.7
+    RECHARGES: 0.8
+    REFERRALS: 0.8
+    FIXED_DEPOSIT: 0.7
+    FLIGHTS: 0.3
+
+  CASHBACK_REDEEMED:
+    UPI_ACTIVATION: 0.5
+    PERSONAL_LOAN: 0.7
+    UNSECURED_CARD: 1.0
+    SECURED_CARD: 0.9
+    CC_BILL_PAYMENT: 0.6
+    RENT_PAYMENT: 0.7
+    BILL_PAYMENTS: 0.6
+    RECHARGES: 0.5
+    REFERRALS: 0.9
+    FIXED_DEPOSIT: 0.9
+    FLIGHTS: 0.8
+
+  REWARDS_HISTORY:
+    UPI_ACTIVATION: 0.5
+    PERSONAL_LOAN: 0.6
+    UNSECURED_CARD: 1.0
+    SECURED_CARD: 0.9
+    CC_BILL_PAYMENT: 0.7
+    RENT_PAYMENT: 0.5
+    BILL_PAYMENTS: 0.6
+    RECHARGES: 0.5
+    REFERRALS: 0.9
+    FIXED_DEPOSIT: 0.8
+    FLIGHTS: 0.8
