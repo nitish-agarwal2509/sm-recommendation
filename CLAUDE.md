@@ -96,6 +96,6 @@ final_score[p] =
 `HOME_BANNER`, `HOME_BOTTOMSHEET`, `POST_UPI`, `CASHBACK_REDEEMED`, `REWARDS_HISTORY`
 Surface affinity multiplier applied at API serve time (not stored in batch output).
 
-## PRD
+## LLD
 Full product requirements, exact scoring formulas, eligibility rules, feature derivation:
-`docs/PRD.md`
+`docs/LLD.md`
