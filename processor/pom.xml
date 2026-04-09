@@ -94,8 +94,12 @@
 
             <!--
                 exec:exec spawns a fresh JVM (avoids Maven classloader conflict with Flink/Kryo).
-                The ${exec.args} property is appended after the main class argument.
-                Usage: mvn exec:exec -pl processor -Dexec.args="..."
+                App args are passed via -Dinput, -Doutput, -DscoringConfig properties.
+                Usage:
+                  mvn exec:exec -pl processor \
+                    -Dinput=processor/src/test/resources/sms_insights_sample.csv \
+                    -Doutput=processor/output/recommendations.json \
+                    -DscoringConfig=common/src/main/resources/scoring_rules.yaml
             -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -111,8 +115,10 @@
                         <argument>-classpath</argument>
                         <classpath/>
                         <argument>supermoney.recommendation.processor.flink.SmRecommendationJob</argument>
+                        <argument>--input</argument><argument>${input}</argument>
+                        <argument>--output</argument><argument>${output}</argument>
+                        <argument>--scoring-config</argument><argument>${scoringConfig}</argument>
                     </arguments>
-                    <commandlineArgs>${exec.args}</commandlineArgs>
                 </configuration>
             </plugin>
         </plugins>
