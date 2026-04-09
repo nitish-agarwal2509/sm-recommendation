@@ -119,39 +119,60 @@ JAVA_HOME=$(/usr/libexec/java_home -v 17) mvn test -pl serving-api -Dtest=EndToE
 
 ## Manual Validation
 
+All commands run from the **project root** (`sm-recommendation/`).
+
 ```bash
-# 1. Run Flink job
-JAVA_HOME=$(/usr/libexec/java_home -v 17) \
+# 1. Build
+mvn clean package -DskipTests
+
+# 2. Run Flink job — note: -Dinput/-Doutput/-DscoringConfig (not -Dexec.args)
 mvn exec:exec -pl processor \
-  -Dexec.args="--input processor/src/test/resources/sms_insights_sample.csv \
-               --output processor/output/recommendations.json \
-               --scoring-config common/src/main/resources/scoring_rules.yaml"
+  -Dinput=processor/src/test/resources/sms_insights_sample.csv \
+  -Doutput=processor/output/recommendations.json \
+  -DscoringConfig=common/src/main/resources/scoring_rules.yaml
 
-# 2. Inspect output
-cat processor/output/recommendations.json | python3 -m json.tool | head -80
+# 3. Inspect output — file is JSONL (one JSON object per line), not a JSON array
+#    Pretty-print one user:
+grep '"user_id":"u001"' processor/output/recommendations.json | python3 -m json.tool
 
-# 3. Start API
-JAVA_HOME=$(/usr/libexec/java_home -v 17) mvn spring-boot:run -pl serving-api &
+#    Pretty-print all users:
+while IFS= read -r line; do echo "$line" | python3 -m json.tool; echo "---"; done \
+  < processor/output/recommendations.json
 
-# 4. Probe all surfaces
+# 4. Start API (in a separate terminal — stays in foreground)
+#    Working dir is set to serving-api/ by spring-boot:run; paths in application.yaml use ../
+mvn spring-boot:run -pl serving-api
+
+# If port 8080 is already in use: lsof -ti :8080 | xargs kill -9
+
+# 5. Probe all surfaces for u001
 for surface in HOME_BANNER HOME_BOTTOMSHEET POST_UPI CASHBACK_REDEEMED REWARDS_HISTORY; do
   echo "=== $surface ==="
   curl -s "http://localhost:8080/recommendation?user_id=u001&surface=$surface" | python3 -m json.tool
 done
 
-# 5. Trigger fatigue and watch count rise
+# 6. Stressed user — should never return a credit product
+curl -s "http://localhost:8080/recommendation?user_id=u003&surface=HOME_BOTTOMSHEET" | python3 -m json.tool
+
+# 7. UPI dormant user — should return UPI_ACTIVATION on every surface
+curl -s "http://localhost:8080/recommendation?user_id=u002&surface=CASHBACK_REDEEMED" | python3 -m json.tool
+
+# 8. Trigger fatigue — watch product and score change over 4 calls
 for i in 1 2 3 4; do
   echo "=== Call $i ==="
   curl -s "http://localhost:8080/recommendation?user_id=u010&surface=HOME_BOTTOMSHEET" | python3 -m json.tool
   sleep 1
 done
 
-# 6. Verify fatigue written to JSON
-grep "u010" processor/output/recommendations.json | python3 -m json.tool
+# 9. Verify fatigue written back to the JSON file
+grep '"user_id":"u010"' processor/output/recommendations.json | python3 -m json.tool
 
-# 7. Error cases
+# 10. Error cases
 curl -s "http://localhost:8080/recommendation?user_id=nobody&surface=HOME_BOTTOMSHEET"
+# → {"error":"NO_RECOMMENDATION","user_id":"nobody","surface":"HOME_BOTTOMSHEET"}
+
 curl -s "http://localhost:8080/recommendation?user_id=u001&surface=INVALID"
+# → {"error":"INVALID_SURFACE","surface":"INVALID"}
 ```
 
 ---

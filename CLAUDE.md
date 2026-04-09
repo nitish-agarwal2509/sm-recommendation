@@ -31,26 +31,45 @@ sm-recommendation/
 # Full build
 mvn clean package
 
+# Run all tests
+mvn test
+
 # Run tests for one module
 mvn test -pl common
 mvn test -pl processor
 mvn test -pl serving-api
 
-# Run Flink job locally
+# Run Flink job locally (from project root)
 mvn exec:exec -pl processor \
-  -Dexec.args="--input processor/src/test/resources/sms_insights_sample.csv \
-               --output processor/output/recommendations.json \
-               --scoring-config common/src/main/resources/scoring_rules.yaml"
+  -Dinput=processor/src/test/resources/sms_insights_sample.csv \
+  -Doutput=processor/output/recommendations.json \
+  -DscoringConfig=common/src/main/resources/scoring_rules.yaml
 
-# Start serving API
+# Alternative: run fat JAR directly (requires --add-opens for Flink/Kryo)
+java \
+  --add-opens java.base/java.lang=ALL-UNNAMED \
+  --add-opens java.base/java.util=ALL-UNNAMED \
+  --add-opens java.base/java.io=ALL-UNNAMED \
+  -jar processor/target/processor-1.0-SNAPSHOT.jar \
+  --input processor/src/test/resources/sms_insights_sample.csv \
+  --output processor/output/recommendations.json \
+  --scoring-config common/src/main/resources/scoring_rules.yaml
+
+# Start serving API (from project root)
 mvn spring-boot:run -pl serving-api
 ```
 
 **IMPORTANT — use `exec:exec`, not `exec:java` for Flink.** `exec:java` shares Maven's classloader and causes `ClassNotFoundException` for Flink's internal serialization. `exec:exec` spawns a fresh JVM.
 
+**IMPORTANT — `exec:exec` args use `-Dinput`, `-Doutput`, `-DscoringConfig` properties** (not `-Dexec.args`). `commandlineArgs` and `arguments` are mutually exclusive in exec-maven-plugin; using `-Dexec.args` causes `--input` to be passed as a JVM flag.
+
+**IMPORTANT — `spring-boot:run -pl serving-api` sets working directory to `serving-api/`.** Paths in `application.yaml` use `../` prefix to resolve correctly from there. Do not change them to bare relative paths.
+
 **JDK compatibility:** JDK 17 required (company standard). Install: `brew install --cask temurin@17`. Run with: `JAVA_HOME=$(/usr/libexec/java_home -v 17) mvn ...`
 
 **Maven location:** `/Users/nitish.agarwal5/tools/maven/bin/mvn`
+
+**Port conflict:** If port 8080 is already in use, kill the existing process: `lsof -ti :8080 | xargs kill -9`
 
 ## Key Design Decisions
 - **Local-first V0:** Flink reads local CSV, writes JSON. API reads JSON. No BigQuery/Bigtable until cloud migration.
