@@ -6,8 +6,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -28,14 +31,42 @@ class SmRecommendationJobTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    // Paths resolved from test classpath (works regardless of Maven working directory)
-    private static final String CSV_PATH    = classpathPath("sms_insights_sample.csv");
-    private static final String CONFIG_PATH = classpathPath("scoring_rules.yaml");
+    // CSV is always a real file in target/test-classes — url.getPath() is safe
+    private static final String CSV_PATH;
+    // scoring_rules.yaml may be inside common's JAR in .m2 — extract to temp file if needed
+    private static final String CONFIG_PATH;
 
-    private static String classpathPath(String resource) {
-        var url = SmRecommendationJobTest.class.getClassLoader().getResource(resource);
+    static {
+        try {
+            CSV_PATH    = classpathFilePath("sms_insights_sample.csv");
+            CONFIG_PATH = resolveToFile("scoring_rules.yaml");
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to resolve test resources", e);
+        }
+    }
+
+    /** Returns the real filesystem path for a classpath resource that is always a real file. */
+    private static String classpathFilePath(String resource) {
+        URL url = SmRecommendationJobTest.class.getClassLoader().getResource(resource);
         if (url == null) throw new IllegalStateException("Classpath resource not found: " + resource);
         return url.getPath();
+    }
+
+    /**
+     * Returns a real filesystem path for a classpath resource, even if it's inside a JAR.
+     * Extracts to a temp file when the resource lives in a JAR (e.g. common loaded from .m2).
+     */
+    private static String resolveToFile(String resource) throws IOException {
+        URL url = SmRecommendationJobTest.class.getClassLoader().getResource(resource);
+        if (url == null) throw new IllegalStateException("Classpath resource not found: " + resource);
+        if ("file".equals(url.getProtocol())) return url.getPath();
+
+        Path tmp = Files.createTempFile("scoring_rules", ".yaml");
+        try (InputStream is = url.openStream()) {
+            Files.copy(is, tmp, StandardCopyOption.REPLACE_EXISTING);
+        }
+        tmp.toFile().deleteOnExit();
+        return tmp.toString();
     }
 
     @Test
