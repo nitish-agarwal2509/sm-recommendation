@@ -3,8 +3,8 @@ server:
 
 recommendation:
   store:
-    local-json-path: processor/output/recommendations.json
-  scoring-config-path: common/src/main/resources/scoring_rules.yaml
+    local-json-path: ../processor/output/recommendations.json
+  scoring-config-path: ../common/src/main/resources/scoring_rules.yaml
   creative-variants:
     UPI_ACTIVATION: "upi_v1"
     PERSONAL_LOAN: "loan_v1"
