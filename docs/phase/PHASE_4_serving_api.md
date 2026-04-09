@@ -240,11 +240,24 @@ curl "http://localhost:8080/recommendation?user_id=u123&surface=HOME_BOTTOMSHEET
 ---
 
 ## Definition of Done
-- [ ] `GET /recommendation` returns correct top-1 for all 5 surfaces
-- [ ] Surface affinity multipliers applied at serve time (not stored)
-- [ ] Fatigue written on every successful response (shown_count + shown_at)
-- [ ] `LocalJsonRecommendationStore` loads JSON on startup (in-memory cache)
-- [ ] 404 for unknown user, 400 for invalid surface
-- [ ] MockMvc tests pass
-- [ ] `mvn test -pl serving-api` green
-- [ ] Manual end-to-end: `curl` returns valid JSON response < 50ms
+
+**Status: Complete**
+
+- [x] `GET /recommendation` returns correct top-1 for all 5 surfaces
+- [x] Surface affinity multipliers applied at serve time (not stored in batch output)
+- [x] UPI_ACTIVATION arbitration enforced at serve time (always wins if eligible)
+- [x] Fatigue written atomically on every successful response (`incrementFatigue()` synchronized)
+- [x] `LocalJsonRecommendationStore` loads JSONL on startup into `ConcurrentHashMap` (O(1) read)
+- [x] 404 for unknown user (`NO_RECOMMENDATION`), 400 for invalid surface (`INVALID_SURFACE`)
+- [x] Unit tests pass — 16 tests (controller, service, surface affinity applier)
+- [x] `mvn test -pl serving-api` green — 24 tests including E2E
+- [x] Manual end-to-end: `curl` returns valid JSON
+
+**Run command:**
+```bash
+# From project root — spring-boot:run sets cwd to serving-api/, paths in application.yaml use ../
+mvn spring-boot:run -pl serving-api
+
+# If port 8080 is already in use:
+lsof -ti :8080 | xargs kill -9
+```

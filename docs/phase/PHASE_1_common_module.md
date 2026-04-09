@@ -181,10 +181,13 @@ public enum Surface {
 ---
 
 ## Definition of Done
-- [ ] Parent POM created with modules: `common`, `processor`, `serving-api`
-- [ ] All enums created
-- [ ] `UserFeatures` POJO has all fields used across all 11 scorers + derived fields
-- [ ] `ScoredCandidate` and `Recommendation` POJOs created
-- [ ] `scoring_rules.yaml` written with all 11 products, signals, weights, eligibility, fatigue config
-- [ ] `ConfigLoader` loads and validates YAML without errors
-- [ ] All tests pass: `mvn test -pl common`
+
+**Status: Complete**
+
+- [x] Parent POM created with modules: `common`, `processor`, `serving-api`
+- [x] All enums created
+- [x] `UserFeatures` POJO has all fields used across all 11 scorers + derived fields
+- [x] `ScoredCandidate` and `Recommendation` POJOs created
+- [x] `scoring_rules.yaml` written with all 11 products, signals, weights, eligibility, fatigue config
+- [x] `ConfigLoader` loads and validates YAML without errors (`loadFromFile` + `loadFromClasspath`)
+- [x] All tests pass: `mvn test -pl common` — 16 tests green

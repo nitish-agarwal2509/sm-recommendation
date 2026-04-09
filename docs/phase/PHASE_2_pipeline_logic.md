@@ -247,10 +247,13 @@ Each stage gets its own test class with:
 ---
 
 ## Definition of Done
-- [ ] All 6 pipeline stages implemented as pure Java classes
-- [ ] All 11 product scorers implemented (each with own class)
-- [ ] `RecommendationPipeline` orchestrator chains all stages
-- [ ] Unit tests for all stages pass
-- [ ] End-to-end `RecommendationPipelineTest` with 5 user scenarios passes
-- [ ] `mvn test -pl processor` green
-- [ ] No Flink, Spring Boot, or cloud SDK imports anywhere in Phase 2 code
+
+**Status: Complete**
+
+- [x] All 8 pipeline stages implemented as pure Java classes (FeatureDeriver, HealthGate, EligibilityFilter, PropensityScorer, HealthAdjuster, TriggerBoostEvaluator, FatigueEvaluator, Ranker)
+- [x] Propensity scoring driven by YAML signals via `FeatureResolver` — no per-product scorer subclasses needed
+- [x] `RecommendationPipeline` orchestrator chains all stages
+- [x] Unit tests for all stages pass
+- [x] End-to-end `RecommendationPipelineTest` with 5 user scenarios passes
+- [x] `mvn test -pl processor` green — 131 tests (pipeline stages)
+- [x] No Flink, Spring Boot, or cloud SDK imports in pipeline code

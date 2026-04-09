@@ -214,10 +214,31 @@ Or run `SmRecommendationJob.main()` directly from IDE with the same args.
 ---
 
 ## Definition of Done
-- [ ] `SmRecommendationJob` runs end-to-end locally without errors
-- [ ] Input CSV fully parsed (all columns, nulls handled)
-- [ ] Output JSON written (one line per user, correct schema)
-- [ ] Fatigue data merged (not overwritten) in output JSON
-- [ ] `SmRecommendationJobTest` passes
-- [ ] Fat JAR produced: `mvn clean package -pl processor -am`
-- [ ] `mvn test -pl processor` green
+
+**Status: Complete**
+
+- [x] `SmRecommendationJob` runs end-to-end locally without errors
+- [x] Input CSV fully parsed (all 69 columns, nulls handled gracefully)
+- [x] Output JSONL written (one line per user, snake_case schema)
+- [x] Fatigue section preserved across runs (Flink only writes `candidates`/`health_tier`/`computed_at`)
+- [x] `SmRecommendationJobTest` passes — 11 tests green (fixed classpath-vs-JAR path resolution)
+- [x] Fat JAR produced: `mvn clean package -pl processor -am`
+- [x] `mvn test -pl processor` green — 142 tests total
+
+**Run commands:**
+```bash
+# Via Maven exec plugin (recommended)
+mvn exec:exec -pl processor \
+  -Dinput=processor/src/test/resources/sms_insights_sample.csv \
+  -Doutput=processor/output/recommendations.json \
+  -DscoringConfig=common/src/main/resources/scoring_rules.yaml
+
+# Via fat JAR (requires --add-opens for Flink/Kryo)
+java --add-opens java.base/java.lang=ALL-UNNAMED \
+     --add-opens java.base/java.util=ALL-UNNAMED \
+     --add-opens java.base/java.io=ALL-UNNAMED \
+     -jar processor/target/processor-1.0-SNAPSHOT.jar \
+     --input processor/src/test/resources/sms_insights_sample.csv \
+     --output processor/output/recommendations.json \
+     --scoring-config common/src/main/resources/scoring_rules.yaml
+```
