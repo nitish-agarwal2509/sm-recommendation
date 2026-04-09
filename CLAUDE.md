@@ -68,7 +68,7 @@ mvn spring-boot:run -pl serving-api
 | 2 | Pipeline logic in plain Java (no Flink, fully unit-tested) | Complete |
 | 3 | Flink job (wraps Phase 2 logic, CSV → JSON) | Complete |
 | 4 | Spring Boot serving API (JSON read, surface affinity, fatigue write) | Complete |
-| 5 | End-to-end integration tests | Not started |
+| 5 | End-to-end integration tests (CSV → Flink → JSON → API → HTTP) | Complete |
 
 ## Pipeline (6 Stages, per user)
 1. Candidate Generation (all products minus held)

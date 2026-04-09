@@ -30,6 +30,10 @@ public class SurfaceAffinityApplier {
     /**
      * Ranks candidates by surface-adjusted score and returns the highest-scoring one.
      *
+     * Arbitration rule: UPI_ACTIVATION always wins if present and not converted (penalty < 999).
+     * This mirrors the batch pipeline's "always rank 1 if eligible" rule and ensures UPI
+     * dormant users are never displaced by other products at serve time.
+     *
      * @param candidates       pre-surface candidates from the batch store
      * @param surface          the surface being served
      * @param fatiguePenalties per-product fatigue penalty computed at serve time
@@ -39,6 +43,20 @@ public class SurfaceAffinityApplier {
                                                    Surface surface,
                                                    Map<Product, Double> fatiguePenalties) {
         if (candidates == null || candidates.isEmpty()) return Optional.empty();
+
+        // Arbitration: UPI_ACTIVATION always wins if eligible (not converted)
+        for (ScoredCandidate c : candidates) {
+            if (c.getProduct() == Product.UPI_ACTIVATION) {
+                double upiPenalty = fatiguePenalties.getOrDefault(Product.UPI_ACTIVATION, 0.0);
+                if (upiPenalty < 999.0) {
+                    double affinity = scoringConfig.getSurfaceAffinityMultiplier(
+                            surface.name(), c.getProduct().name());
+                    double surfaceScore = (c.getPreSurfaceScore() - upiPenalty * 0.15) * affinity;
+                    return Optional.of(new RankedCandidate(c, surfaceScore));
+                }
+                break; // UPI present but converted → fall through to normal ranking
+            }
+        }
 
         return candidates.stream()
                 .map(c -> {

@@ -30,6 +30,13 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- E2E integration test: runs SmRecommendationJob in-process before Spring context loads -->
+        <dependency>
+            <groupId>supermoney.recommendation</groupId>
+            <artifactId>processor</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -38,11 +45,13 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <!-- Mockito byte-buddy needs reflective access on JDK 17+ -->
+                    <!-- Mockito byte-buddy + Flink/Kryo need reflective access on JDK 17+ -->
                     <argLine>
                         --add-opens java.base/java.lang=ALL-UNNAMED
                         --add-opens java.base/java.util=ALL-UNNAMED
                         --add-opens java.base/java.io=ALL-UNNAMED
+                        --add-opens java.base/java.nio=ALL-UNNAMED
+                        --add-opens java.base/sun.nio.ch=ALL-UNNAMED
                     </argLine>
                 </configuration>
             </plugin>

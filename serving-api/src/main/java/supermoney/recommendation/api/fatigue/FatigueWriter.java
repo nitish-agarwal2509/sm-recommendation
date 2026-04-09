@@ -23,7 +23,7 @@ public class FatigueWriter {
     }
 
     @Async
-    public void recordImpression(String userId, Product product, int newShownCount) {
-        store.updateFatigue(userId, product, newShownCount, Instant.now());
+    public void recordImpression(String userId, Product product) {
+        store.incrementFatigue(userId, product, Instant.now());
     }
 }

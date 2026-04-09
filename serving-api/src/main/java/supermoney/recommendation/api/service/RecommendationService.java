@@ -78,10 +78,8 @@ public class RecommendationService {
         SurfaceAffinityApplier.RankedCandidate winner = top.get();
         Product product = winner.candidate().getProduct();
 
-        // Write fatigue async (non-blocking)
-        FatigueData existing = fatigueData.get(product);
-        int newCount = existing != null ? existing.getShownCount() + 1 : 1;
-        fatigueWriter.recordImpression(userId, product, newCount);
+        // Write fatigue async (non-blocking); count increment is atomic inside the store
+        fatigueWriter.recordImpression(userId, product);
 
         return Optional.of(new RecommendationResult(
                 winner.candidate(),

@@ -88,7 +88,7 @@ class RecommendationServiceTest {
         RecommendationService service = buildService();
         service.getRecommendation("u002", Surface.HOME_BOTTOMSHEET);
 
-        verify(fatigueWriter, times(1)).recordImpression(eq("u002"), any(Product.class), eq(1));
+        verify(fatigueWriter, times(1)).recordImpression(eq("u002"), any(Product.class));
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

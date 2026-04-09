@@ -64,13 +64,15 @@ public class LocalJsonRecommendationStore implements RecommendationStore {
     }
 
     @Override
-    public synchronized void updateFatigue(String userId, Product product, int shownCount, Instant shownAt) {
+    public synchronized void incrementFatigue(String userId, Product product, Instant shownAt) {
         UserRecoRecord record = cache.get(userId);
         if (record == null) return;
 
-        FatigueData fatigueData = new FatigueData(shownCount, shownAt.toString(), false);
-        record.getFatigue().put(product.name(), fatigueData);
+        // Compute new count inside the synchronized block to prevent read-increment-write races
+        FatigueData existing = record.getFatigueFor(product);
+        int newCount = existing != null ? existing.getShownCount() + 1 : 1;
 
+        record.getFatigue().put(product.name(), new FatigueData(newCount, shownAt.toString(), false));
         persist();
     }
 

@@ -18,8 +18,9 @@ public interface RecommendationStore {
     Optional<UserRecoRecord> findByUserId(String userId);
 
     /**
-     * Records an impression for the given product.
+     * Atomically increments the impression count for the given product and records the timestamp.
      * Called asynchronously after every successful GET /recommendation response.
+     * The increment is computed inside the synchronized store to prevent read-increment-write races.
      */
-    void updateFatigue(String userId, Product product, int shownCount, Instant shownAt);
+    void incrementFatigue(String userId, Product product, Instant shownAt);
 }
